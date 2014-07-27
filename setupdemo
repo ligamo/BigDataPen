@@ -1,9 +1,13 @@
+########################################################################
+环境：centos6.5，桥接
 
-关selinux 和 iptables
+########################################################################
+准备：
+一、关selinux 和 iptables
 [root@base ~]# vi /etc/selinux/config
 [root@base ~]# chkconfig iptables off
-
-安装JDK(jdk-6u45-linux-i586-rpm.bin)配置环境/etc/profile
+二、安装jdk
+配置环境变量：/etc/profile
 JAVA_HOME=/usr/java/jdk1.6.0_45
 JRE_HOME=$JAVA_HOME/jre
 PATH=$PATH:$JAVA_HOME/bin:$JRE_HOME/bin
@@ -14,51 +18,57 @@ export JAVA_HOME JRE_HOME PATH CLASSPATH
 .bash_profile 配置用户特殊的profile
 .bashrc 配置bash专用的(bash是一种shell linux 可以有很多种shell 比如C shell 就是C语言风格的shell 如果用C shell 这个文件就没用了)
 ############################################################################
-配置/etc/sysconfig/network-scripts/ifcfg-eth0
-
-DEVICE=eth0
-
-#复制的虚拟机需要改这个硬件地址(也叫网卡的MAC地址)
-HWADDR=00:0C:29:01:FF:78
-TYPE=Ethernet
-UUID=0ca7c5f6-daff-4f43-ae2b-d4155e687d60
-
+配置网络环境：/etc/sysconfig/network-scripts/ifcfg-eth0
 #开机启动网卡
 ONBOOT=yes
 
-NM_CONTROLLED=yes
 
-#使用静态IP配置
-BOOTPROTO=static
 
-#对应的子网广播地址
-BROADCAST=192.168.36.255
-#网卡对应的网段地址
-NETWORK=192.168.36.0
-#设置网卡获得的IP地址
-IPADDR=192.168.36.129
-#网卡对应的网络掩码
-NETMASK=255.255.255.0
-#设置Linux的网关(由虚拟机网络配置决定)
-GATEWAY=192.168.36.2
-#设置Linux的DNS(由虚拟机网络配置决定通常网关也是内网DNS，转发DNS请求)
-DNS1=192.168.36.2
+启动网络服务
+service network restart
+#如果不能成功启动则reboot后再尝试
+使用ifconfig查看本机ip
 
-有外网测试安装setuptool
-yum -y install setuptool
-没有外网 ifconfig 看有否有 eth0 并且eth0 有IP 能ping通其他的虚拟机
-############################################################################
+修改主机名
+[root@hadoop CentOS]# vi /etc/sysconfig/network
+HOSTNAME=hadoop
+
+修改完成后reboot生效
 
 修改/etc/hosts
-192.168.36.130 master
-192.168.36.131 slave1
-192.168.36.132 slave2
-192.168.36.133 slave3
+主机ip master
+从机ip slave1
+...
 
 修改 /etc/security/limits.conf 最后加 配置最大线程和文件打开数
 * - nproc 65535
 * - nofile 65535
 
+############################################################################
+本地镜像安装openssh-client
+在media下创建CentOS 文件夹
+[root@hadoop media]# mkdir CentOS
+
+挂载光盘至/media/CentOS目录下（这样可以不用修改yum相应配置文件）
+ mount /dev/cdrom /media/CentOS/
+
+查看配置文件
+[root@hadoop CentOS]# more /etc/yum.repos.d/CentOS-Media.repo 
+记录第12行：
+如：#  yum --disablerepo=\* --enablerepo=c6-media [command]
+使用上条命令安装openssh-client
+[root@hadoop CentOS]# yum --disablerepo=\* --enablerepo=c6-media install openssh-clients -y
+
+
+############################################################################
+创建hadoop用户
+useradd hadoop
+
+设置密码
+passwd hadoop
+
+############################################################################
+配置ssh无密码验证
 确保创建了 hadoop 这个用户 执行以下命令
 su - hadoop
 mkdir ~/.ssh
@@ -183,11 +193,10 @@ slave1
 slave2
 slave3
 ############################################################################
-复制4份虚拟机 并配置静态IP
-vm_master 192.168.36.130
-vm_slave1 192.168.36.131
-vm_slave2 192.168.36.132
-vm_slave3 192.168.36.133
+复制虚拟机 并配置IP
+vm_master 主机ip
+vm_slave1 从机ip
+...
 ############################################################################
 hadoop namenode -format
 启动hadoop：
